@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////
 //
-// termnoid - termnoid.h
+// termnoid - system.h
 //
 // Copyright (c) 2021 Christopher M. Short
 //
@@ -21,25 +21,56 @@
 //
 ////////////////////////////////////////////////////////////////////////////
 
-#include "termnoid.h"
+
+#ifndef _SYSTEM_H
+#define _SYSTEM_H
 
 
 /////////////////////////////////////////////////////////////
-// MAIN FUNCTION
+// SYSTEM MACRO'S
 //
 
-int main(const int argc, const char *argv[]) {
-  // Initialize the system struct
-  struct system *sys = term_new_system(argc, argv);
+#define CTRL_KEY(x) ((x) & 0x1f)
 
-  if(sys) {
-    // Run the main application loop
-    term_run(sys);
 
-    // Free system struct
-    term_free_system(sys);
-    term_exit_curses();
-  }
+/////////////////////////////////////////////////////////////
+// SYSTEM TYPES
+//
 
-  return 0;
-}
+enum sysval {
+  T_ERR = 0, T_OK = 1
+};
+
+enum state {
+  T_EXIT = 0, T_RUN = 1
+};
+
+struct system {
+  int state;
+  int key;
+
+  int height;
+  int width;
+
+  struct game *game;
+};
+
+
+/////////////////////////////////////////////////////////////
+// SYSTEM FUNCTION DECLARATIONS
+//
+
+// System struct functions
+struct system* term_new_system(const int argc, const char *argv[]);
+void           term_free_system(struct system *sys);
+
+// System initialization functions
+int            term_init_curses();
+void           term_exit_curses();
+
+// System main loop
+void           term_run(struct system *sys);
+void           term_render(struct system *sys);
+
+
+#endif // _SYSTEM_H

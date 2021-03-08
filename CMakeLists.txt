@@ -20,7 +20,6 @@ else()
   message(STATUS "ERROR: pkg-config is not installed on this system and is required to compile termnoid.")
 endif()
 
-
 ## FLAGS
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -Wall")
 set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS} ${CMAKE_CXX_FLAGS_DEBUG} -g -Wall -DDEBUG_BUILD")

@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////
 //
-// termnoid - termnoid.h
+// termnoid - game.h
 //
 // Copyright (c) 2021 Christopher M. Short
 //
@@ -21,25 +21,37 @@
 //
 ////////////////////////////////////////////////////////////////////////////
 
-#include "termnoid.h"
+#ifndef _GAME_H
+#define _GAME_H
+
+/////////////////////////////////////////////////////////////
+// GAME MACRO'S
+//
+
+#define buffer_w 12
+#define buffer_h 18
 
 
 /////////////////////////////////////////////////////////////
-// MAIN FUNCTION
+// GAME TYPES
 //
 
-int main(const int argc, const char *argv[]) {
-  // Initialize the system struct
-  struct system *sys = term_new_system(argc, argv);
+struct game {
+  char buffer[buffer_w * buffer_h];
+  int  shape;
 
-  if(sys) {
-    // Run the main application loop
-    term_run(sys);
+  int pos_x;
+  int pos_y;
+};
 
-    // Free system struct
-    term_free_system(sys);
-    term_exit_curses();
-  }
 
-  return 0;
-}
+static const char *tetromino[5] = {
+  "0000011001100000",
+  "0000002000200220",
+  "0000030003000330",
+  "0044044000000000",
+  "0000005005500050"
+};
+
+
+#endif // _GAME_H

@@ -36,6 +36,19 @@
 #include <string.h>
 
 // Other Libs
-#include <ncurses.h>
+#include <curses.h>
+
+// Local includes
+#include "game.h"
+#include "system.h"
+
+
+/////////////////////////////////////////////////////////////
+// APPLICATION DETAILS
+//
+
+//static const char *APP_NAME = "TERMNOID";
+//static const char *APP_AUTH = "C.M. SHORT";
+//static const char *APP_VERS = "0.0.1-BETA";
 
 #endif // _TERMNOID_H
