@@ -2,8 +2,19 @@
 
 ## Description
 
-This little executable aims to be an efficient and tiny tetris clone that can be played within the terminal window written entirely in C.
+This little executable aims to be an efficient and tiny tetris clone that can be played within the terminal window written entirely in C. Currently it is under construction and definately should be considered broken.
 
+## Controls
+
+Basic controls are subject to change of whim but are currently:
+
+Q - Rotate counter clockwise
+E - Rotate clockwise
+A - Move left
+D - Move right
+S - Change shape (debug only)
+
+To quit the application use CTRL + X
 
 ## Copyright
 

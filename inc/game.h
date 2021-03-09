@@ -28,7 +28,7 @@
 // GAME MACRO'S
 //
 
-#define buffer_w 12
+#define buffer_w 14
 #define buffer_h 18
 
 
@@ -36,22 +36,34 @@
 // GAME TYPES
 //
 
+enum rotation {
+  R_0 = 0, R_90 = 1, R_180 = 2, R_270 = 3
+};
+
 struct game {
   char buffer[buffer_w * buffer_h];
   int  shape;
-
-  int pos_x;
-  int pos_y;
+  int  pos_x;
+  int  pos_y;
+  int  rotate;
 };
 
 
-static const char *tetromino[5] = {
-  "0000011001100000",
-  "0000002000200220",
-  "0000030003000330",
-  "0044044000000000",
-  "0000005005500050"
-};
+
+
+/////////////////////////////////////////////////////////////
+// GAME FUNCTION DECLARATIONS
+//
+
+// Game logic functions
+void term_handle_logic(struct game *game);
+
+int  term_rotate_shape(int x, int y, int rotation);
+int  term_can_move_shape(struct game *game, int x, int y);
+
+void term_init_buffer(struct game *game);
+
+void term_render_shape(struct game *game);
 
 
 #endif // _GAME_H

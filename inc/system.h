@@ -51,6 +51,7 @@ struct system {
 
   int height;
   int width;
+  int rotate;
 
   struct game *game;
 };

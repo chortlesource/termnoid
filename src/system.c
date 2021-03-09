@@ -36,14 +36,14 @@ struct system*  term_new_system(const int argc, const char *argv[]) {
     struct game *game = malloc(sizeof(struct game));
 
     if(game) {
-      // Zero out the game field
-      for(int i = 0; i < buffer_h * buffer_w; i++)
-        game->buffer[i] = '0';
+      // Initialize the game buffer
+      term_init_buffer(game);
 
       sys->game = game;
-      sys->game->shape = 0;
-      sys->game->pos_x = (buffer_w / 2);
-      sys->game->pos_y = (buffer_h / 2);
+      sys->game->shape  = 0;
+      sys->game->rotate = R_0;
+      sys->game->pos_x  = (buffer_w / 2) - 1;
+      sys->game->pos_y  = (buffer_h / 2) - 1;
       sys->state = T_RUN; // To enable the main loop
     } else {
       free(sys);
@@ -68,7 +68,7 @@ void term_free_system(struct system *sys) {
 int term_init_curses() {
    // Initialize ncurses
     initscr();
-    cbreak();
+    wtimeout(stdscr, 1);
     noecho();
     curs_set(0);
     keypad(stdscr, TRUE);
@@ -87,6 +87,7 @@ int term_init_curses() {
     init_pair(5, COLOR_BLACK, COLOR_GREEN);
     init_pair(6, COLOR_BLACK, COLOR_YELLOW);
     init_pair(7, COLOR_BLACK, COLOR_CYAN);
+    init_pair(8, COLOR_BLACK, COLOR_MAGENTA);
     refresh();
     return T_OK;
 }
@@ -108,6 +109,9 @@ void term_run(struct system *sys) {
   if(sys) {
     while(sys->state != T_EXIT) {
 
+      // Handle logic
+      term_handle_logic(sys->game);
+
       // Render the screen
       term_render(sys);
 
@@ -128,9 +132,28 @@ void term_run(struct system *sys) {
         sys->game->shape += 1;
         if(sys->game->shape >= 5)
           sys->game->shape = 0;
+        break;
+      case 'a':
+        if(term_can_move_shape(sys->game, sys->game->pos_x - 1, sys->game->pos_y))
+          sys->game->pos_x -= 1;
+        break;
+      case 'd':
+        if(term_can_move_shape(sys->game, sys->game->pos_x + 1, sys->game->pos_y))
+          sys->game->pos_x += 1;
+        break;
+      case 'e':
+        if(sys->game->rotate < 3)
+          sys->game->rotate += 1;
+        else
+          sys->game->rotate = 0;
+        break;
+      case 'q':
+        if(sys->game->rotate > 0)
+          sys->game->rotate -= 1;
+        else
+          sys->game->rotate = 3;
+        break;
       default:
-        endwin();
-        refresh();
         break;
       };
     }
@@ -151,13 +174,6 @@ void term_render(struct system *sys) {
     int min_x = (sys->width / 2) - (buffer_w / 2);
     int min_y = (sys->height / 2) - (buffer_h / 2);
 
-    // Test the addition of tetromino's to the game
-    for(int x = 0; x < 4; x++) {
-      for(int y = 0; y < 4; y++) {
-        if(tetromino[sys->game->shape][y*4+x] != 0)
-          sys->game->buffer[(sys->game->pos_y + y) * buffer_w + (sys->game->pos_x + x)] = tetromino[sys->game->shape][y*4+x];
-      }
-    }
 
     // Print the game buffer
     for(int x = 0; x < buffer_w; x++) {
@@ -194,7 +210,13 @@ void term_render(struct system *sys) {
           mvwaddch(stdscr, min_y + y, min_x + x, ' ');
           wattroff(stdscr, COLOR_PAIR(7));
           break;
+        case '#':
+          wattron(stdscr, COLOR_PAIR(8));
+          mvwaddch(stdscr, min_y + y, min_x + x, ' ');
+          wattroff(stdscr, COLOR_PAIR(8));
         };
     }
   }
+
+  wrefresh(stdscr);
 }
