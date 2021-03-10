@@ -25,6 +25,26 @@
 
 
 /////////////////////////////////////////////////////////////
+// SYSTEM STATIC FUNCTIONS
+//
+
+static double term_calc_delta(struct system *sys) {
+  double rvalue = 0.0;
+
+  if(sys) {
+    /// Obtain the current time in microseconds
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+
+    // Calculate delta time
+    sys->delta = tv.tv_usec - sys->last_time;
+    rvalue = sys->delta;
+  }
+
+  return rvalue;
+}
+
+/////////////////////////////////////////////////////////////
 // SYSTEM FUNCTION IMPLEMENTATION
 //
 
@@ -44,7 +64,13 @@ struct system*  term_new_system(const int argc, const char *argv[]) {
       sys->game->rotate = R_0;
       sys->game->pos_x  = (buffer_w / 2) - 1;
       sys->game->pos_y  = (buffer_h / 2) - 1;
-      sys->state = T_RUN; // To enable the main loop
+
+      sys->height    = 0;
+      sys->width     = 0;
+      sys->rotate    = 0;
+      sys->delta     = 0.0;
+      sys->last_time = 0;
+      sys->state     = T_RUN; // To enable the main loop
     } else {
       free(sys);
       sys = NULL;
@@ -106,56 +132,33 @@ void term_run(struct system *sys) {
   // Find out the size of the terminal
   getmaxyx(stdscr, sys->height, sys->width);
 
+  double rate    = 0.01;
+  double elapsed = 0.00;
+
+
   if(sys) {
     while(sys->state != T_EXIT) {
 
-      // Handle logic
-      term_handle_logic(sys->game);
+      // Handle the passage of time
+      term_calc_delta(sys);
 
-      // Render the screen
-      term_render(sys);
+      if(sys->delta > 0.60) sys->delta = 0.60;
+      elapsed += sys->delta;
 
-      // Handle user input
-      int opt  = wgetch(stdscr);
-      sys->key = opt;
+      // Fix that timestep to run at a const rate
+      while(elapsed >= rate) {
+        // Handle logic
+        term_handle_logic(sys->game);
 
-      switch(opt) {
-      case KEY_RESIZE:
-        getyx(stdscr, sys->height, sys->width);
-        endwin();
-        refresh();
-        break;
-      case CTRL_KEY('x'):
-        sys->state = T_EXIT;
-        break;
-      case 's':
-        sys->game->shape += 1;
-        if(sys->game->shape >= 5)
-          sys->game->shape = 0;
-        break;
-      case 'a':
-        if(term_can_move_shape(sys->game, sys->game->pos_x - 1, sys->game->pos_y))
-          sys->game->pos_x -= 1;
-        break;
-      case 'd':
-        if(term_can_move_shape(sys->game, sys->game->pos_x + 1, sys->game->pos_y))
-          sys->game->pos_x += 1;
-        break;
-      case 'e':
-        if(sys->game->rotate < 3)
-          sys->game->rotate += 1;
-        else
-          sys->game->rotate = 0;
-        break;
-      case 'q':
-        if(sys->game->rotate > 0)
-          sys->game->rotate -= 1;
-        else
-          sys->game->rotate = 3;
-        break;
-      default:
-        break;
-      };
+        // Render the screen
+        term_render(sys);
+
+        // Handle user input
+        int opt  = wgetch(stdscr);
+        term_handle_key(sys, opt);
+
+        elapsed -= rate;
+      }
     }
   }
 
@@ -178,8 +181,7 @@ void term_render(struct system *sys) {
     // Print the game buffer
     for(int x = 0; x < buffer_w; x++) {
       for(int y = 0; y < buffer_h; y++)
-        switch(sys->game->buffer[y * buffer_w + x]) {
-        default:
+        switch(sys->game->scr_buff[y * buffer_w + x]) {
         case '0':
           wattron(stdscr, COLOR_PAIR(2));
           mvwaddch(stdscr, min_y + y, min_x + x, ' ');
@@ -206,17 +208,86 @@ void term_render(struct system *sys) {
           wattroff(stdscr, COLOR_PAIR(6));
           break;
         case '5':
-          wattron(stdscr, COLOR_PAIR(7));
+          wattron(stdscr, COLOR_PAIR(3));
           mvwaddch(stdscr, min_y + y, min_x + x, ' ');
-          wattroff(stdscr, COLOR_PAIR(7));
+          wattroff(stdscr, COLOR_PAIR(3));
+          break;
+        case '6':
+          wattron(stdscr, COLOR_PAIR(4));
+          mvwaddch(stdscr, min_y + y, min_x + x, ' ');
+          wattroff(stdscr, COLOR_PAIR(4));
+          break;
+        case '7':
+          wattron(stdscr, COLOR_PAIR(5));
+          mvwaddch(stdscr, min_y + y, min_x + x, ' ');
+          wattroff(stdscr, COLOR_PAIR(5));
           break;
         case '#':
           wattron(stdscr, COLOR_PAIR(8));
           mvwaddch(stdscr, min_y + y, min_x + x, ' ');
           wattroff(stdscr, COLOR_PAIR(8));
+        default:
+          break;
         };
     }
   }
 
   wrefresh(stdscr);
+}
+
+
+void term_handle_key(struct system *sys, int opt) {
+  if(opt) {
+    switch(opt) {
+    case KEY_RESIZE:
+      getyx(stdscr, sys->height, sys->width);
+      endwin();
+      refresh();
+      break;
+    case CTRL_KEY('x'):
+      sys->state = T_EXIT;
+      break;
+    case 'f':
+      sys->game->shape += 1;
+      if(sys->game->shape >= 7)
+        sys->game->shape = 0;
+      break;
+    case 'w':
+      if(term_can_move_shape(sys->game, sys->game->pos_x, sys->game->pos_y - 1))
+        sys->game->pos_y -= 1;
+      break;
+    case 'a':
+      if(term_can_move_shape(sys->game, sys->game->pos_x - 1, sys->game->pos_y))
+        sys->game->pos_x -= 1;
+      break;
+    case 's':
+      if(term_can_move_shape(sys->game, sys->game->pos_x, sys->game->pos_y + 1))
+        sys->game->pos_y += 1;
+      break;
+    case 'd':
+      if(term_can_move_shape(sys->game, sys->game->pos_x + 1, sys->game->pos_y))
+        sys->game->pos_x += 1;
+      break;
+    case 'e':
+      if(sys->game->rotate < 3) {
+        sys->game->rotate += 1;
+        if(!term_can_move_shape(sys->game, sys->game->pos_x, sys->game->pos_y))
+          sys->game->rotate -= 1;
+      } else {
+        sys->game->rotate = 0;
+      }
+      break;
+      case 'q':
+        if(sys->game->rotate > 0) {
+          sys->game->rotate -= 1;
+          if(term_can_move_shape(sys->game, sys->game->pos_x, sys->game->pos_y))
+            sys->game->rotate += 1;
+        } else {
+          sys->game->rotate = 3;
+        }
+        break;
+    default:
+      break;
+    };
+  }
 }

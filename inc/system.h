@@ -47,12 +47,12 @@ enum state {
 
 struct system {
   int state;
-  int key;
-
   int height;
   int width;
   int rotate;
 
+  long   last_time;
+  double delta;
   struct game *game;
 };
 
@@ -72,6 +72,6 @@ void           term_exit_curses();
 // System main loop
 void           term_run(struct system *sys);
 void           term_render(struct system *sys);
-
+void           term_handle_key(struct system *sys, int opt);
 
 #endif // _SYSTEM_H

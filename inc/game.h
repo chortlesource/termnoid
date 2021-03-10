@@ -41,7 +41,8 @@ enum rotation {
 };
 
 struct game {
-  char buffer[buffer_w * buffer_h];
+  char scr_buff[buffer_w * buffer_h];
+  char lvl_buff[buffer_w * buffer_h];
   int  shape;
   int  pos_x;
   int  pos_y;
@@ -56,14 +57,14 @@ struct game {
 //
 
 // Game logic functions
+
+
 void term_handle_logic(struct game *game);
 
-int  term_rotate_shape(int x, int y, int rotation);
+int  term_get_rotation(int x, int y, int rotation);
 int  term_can_move_shape(struct game *game, int x, int y);
 
 void term_init_buffer(struct game *game);
-
-void term_render_shape(struct game *game);
-
+void term_render_screen(struct game *game);
 
 #endif // _GAME_H

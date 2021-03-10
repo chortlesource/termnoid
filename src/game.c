@@ -28,13 +28,16 @@
 // GAME STATIC GLOBALS
 //
 
-static const char *tetromino[5] = {
-  "0000011001100000",
-  "0000002000200220",
-  "0000030003000330",
-  "0044044000000000",
-  "0000005005500050"
+static const char *shapes[7] = {
+  "0010001000100010",
+  "0020022000200000",
+  "0000033003300000",
+  "0040044004000000",
+  "0500055000500000",
+  "0600060006600000",
+  "0070007007700000"
 };
+
 
 
 /////////////////////////////////////////////////////////////
@@ -44,10 +47,10 @@ static const char *tetromino[5] = {
 // Game logic functions
 void term_handle_logic(struct game *game) {
   // Render the tetromino
-  term_render_shape(game);
+  term_render_screen(game);
 }
 
-int  term_rotate_shape(int x, int y, int rotation) {
+int  term_get_rotation(int x, int y, int rotation) {
   int rvalue = 0;
 
   switch(rotation) {
@@ -71,6 +74,24 @@ int  term_rotate_shape(int x, int y, int rotation) {
 }
 
 int  term_can_move_shape(struct game *game, int x, int y) {
+  if(game) {
+    for(int tx = 0; tx < 4; tx++) {
+      for(int ty = 0; ty < 4; ty++) {
+
+        // Calculate the shape and level position
+        int sp = term_get_rotation(tx, ty, game->rotate);
+        int lp = (y + ty) * buffer_w + (x + tx);
+
+        if((x + tx) >= 0 && (x + tx) < buffer_w) {
+          if((y + ty) >= 0 && (y + ty) < buffer_h) {
+            if(shapes[game->shape][sp] != '0' && game->lvl_buff[lp] != '0')
+              return 0;
+          }
+        }
+      }
+    }
+  }
+
   return 1;
 }
 
@@ -78,27 +99,34 @@ int  term_can_move_shape(struct game *game, int x, int y) {
 void term_init_buffer(struct game *game) {
   // Zero out the game field
   for(int i = 0; i < buffer_h * buffer_w; i++)
-    game->buffer[i] = '0';
+    game->lvl_buff[i] = '0';
 
   // Initialize the border
   for(int x = 0; x < buffer_w; x++) {
     for(int y = 0; y < buffer_h; y++) {
       if(x == 0 || x == buffer_w - 1)
-        game->buffer[y * buffer_w + x] = '#';
+        game->lvl_buff[y * buffer_w + x] = '#';
 
       if(y == 0 || y == buffer_h - 1)
-       game->buffer[y * buffer_w + x] = '#';
+       game->lvl_buff[y * buffer_w + x] = '#';
     }
   }
 }
 
 
-void term_render_shape(struct game *game) {
-  // Test the addition of tetromino's to the game
-  for(int x = 0; x < 4; x++) {
-    for(int y = 0; y < 4; y++) {
-      if(tetromino[game->shape][term_rotate_shape(x, y, game->rotate)] != 0)
-        game->buffer[(game->pos_y + y) * buffer_w + (game->pos_x + x)] = tetromino[game->shape][term_rotate_shape(x, y, game->rotate)];
+void term_render_screen(struct game *game) {
+  if(game) {
+    // Copy accross the lvl_buff data
+    int buffsize = buffer_w * buffer_h;
+    for(int i = 0; i < buffsize; i++)
+      game->scr_buff[i] = game->lvl_buff[i];
+
+    // Next copy accross the shape
+    for(int x = 0; x < 4; x++) {
+      for(int y = 0; y < 4; y++) {
+        if(shapes[game->shape][term_get_rotation(x, y, game->rotate)] != '0')
+          game->scr_buff[(game->pos_y + y) * buffer_w + (game->pos_x + x)] = shapes[game->shape][term_get_rotation(x, y, game->rotate)];
+      }
     }
   }
 }

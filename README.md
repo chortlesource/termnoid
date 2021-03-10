@@ -10,9 +10,11 @@ Basic controls are subject to change of whim but are currently:
 
 Q - Rotate counter clockwise
 E - Rotate clockwise
+W - Move up (debug)
 A - Move left
+S - Move down
 D - Move right
-S - Change shape (debug only)
+F - Change shape (debug only)
 
 To quit the application use CTRL + X
 
