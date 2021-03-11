@@ -73,5 +73,6 @@ void           term_exit_curses();
 void           term_run(struct system *sys);
 void           term_render(struct system *sys);
 void           term_handle_key(struct system *sys, int opt);
+void           term_handle_logic(struct system *sys);
 
 #endif // _SYSTEM_H

@@ -47,6 +47,8 @@ struct game {
   int  pos_x;
   int  pos_y;
   int  rotate;
+
+  float elapsed;
 };
 
 
@@ -56,15 +58,18 @@ struct game {
 // GAME FUNCTION DECLARATIONS
 //
 
-// Game logic functions
+// Game shape manipulation functions
+int   term_get_rotation(int x, int y, int rotation);
+int   term_can_move_shape(struct game *game, int x, int y);
+int   term_is_stuck(struct game *game);
+int   term_line_found(struct game *game);
+void  term_remove_line(struct game *game, int line);
+void  term_move_shape_down(struct game *game, float delta);
+void  term_respawn(struct game *game);
 
-
-void term_handle_logic(struct game *game);
-
-int  term_get_rotation(int x, int y, int rotation);
-int  term_can_move_shape(struct game *game, int x, int y);
-
-void term_init_buffer(struct game *game);
-void term_render_screen(struct game *game);
+// Game buffer functions
+void term_build_buffer(struct game *game);
+void term_build_screen(struct game *game);
+void term_check_lines(struct game *game);
 
 #endif // _GAME_H

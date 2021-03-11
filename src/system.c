@@ -57,13 +57,15 @@ struct system*  term_new_system(const int argc, const char *argv[]) {
 
     if(game) {
       // Initialize the game buffer
-      term_init_buffer(game);
+      term_build_buffer(game);
 
       sys->game = game;
       sys->game->shape  = 0;
-      sys->game->rotate = R_0;
-      sys->game->pos_x  = (buffer_w / 2) - 1;
-      sys->game->pos_y  = (buffer_h / 2) - 1;
+
+      sys->game->pos_x   = (buffer_w / 2) - 2;
+      sys->game->pos_y   = 1;
+      sys->game->rotate  = R_0;
+      sys->game->elapsed = 0;
 
       sys->height    = 0;
       sys->width     = 0;
@@ -142,13 +144,13 @@ void term_run(struct system *sys) {
       // Handle the passage of time
       term_calc_delta(sys);
 
-      if(sys->delta > 0.60) sys->delta = 0.60;
+      if(sys->delta > 0.80) sys->delta = 0.80;
       elapsed += sys->delta;
 
       // Fix that timestep to run at a const rate
       while(elapsed >= rate) {
         // Handle logic
-        term_handle_logic(sys->game);
+        term_handle_logic(sys);
 
         // Render the screen
         term_render(sys);
@@ -226,6 +228,12 @@ void term_render(struct system *sys) {
           wattron(stdscr, COLOR_PAIR(8));
           mvwaddch(stdscr, min_y + y, min_x + x, ' ');
           wattroff(stdscr, COLOR_PAIR(8));
+          break;
+        case 'X':
+          wattron(stdscr, COLOR_PAIR(1));
+          mvwaddch(stdscr, min_y + y, min_x + x, ' ');
+          wattroff(stdscr, COLOR_PAIR(1));
+          break;
         default:
           break;
         };
@@ -280,7 +288,7 @@ void term_handle_key(struct system *sys, int opt) {
       case 'q':
         if(sys->game->rotate > 0) {
           sys->game->rotate -= 1;
-          if(term_can_move_shape(sys->game, sys->game->pos_x, sys->game->pos_y))
+          if(!term_can_move_shape(sys->game, sys->game->pos_x, sys->game->pos_y))
             sys->game->rotate += 1;
         } else {
           sys->game->rotate = 3;
@@ -290,4 +298,17 @@ void term_handle_key(struct system *sys, int opt) {
       break;
     };
   }
+}
+
+
+void           term_handle_logic(struct system *sys) {
+  // Move the shape down
+  term_move_shape_down(sys->game, sys->delta);
+
+  // Check to see if any lines are completed
+  term_check_lines(sys->game);
+
+  // Build the screen buffer before render call
+  term_build_screen(sys->game);
+
 }
