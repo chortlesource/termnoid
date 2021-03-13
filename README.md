@@ -1,7 +1,7 @@
 # TERMNOID - A terminal based tetris clone in C
 
 <p align="center">
-![termnoid running in terminal](gfx/termnoid.png?raw=true "termnoid")
+  <img src="gfx/sublime_text.png?raw=true" alt="termnoid a tetris clone!"/>
 </p>
 
 ## Description
