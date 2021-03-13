@@ -25,8 +25,24 @@
 
 
 /////////////////////////////////////////////////////////////
-// SYSTEM STATIC FUNCTIONS
+// SYSTEM STATIC VARS / FUNCTIONS
 //
+
+static const char *APP_NAME = "termnoid";
+static const char *APP_AUTH = "C. M. Short";
+static const char *APP_VERS = "0.0.1-beta";
+
+static const char *bindings[9] = {
+  "-- KEY MAP --",
+    "Q   | Rotate counter clockwise",
+    "E   | Rotate clockwise",
+    "A   | Move shape left",
+    "D   | Move shape right",
+    "S   | Move shape down",
+    "TAB | Toggle stats",
+    "^F  | Toggle this prompt",
+    "^X  | Exit program"
+    };
 
 static double term_calc_delta(struct system *sys) {
   double rvalue = 0.0;
@@ -43,6 +59,7 @@ static double term_calc_delta(struct system *sys) {
 
   return rvalue;
 }
+
 
 /////////////////////////////////////////////////////////////
 // SYSTEM FUNCTION IMPLEMENTATION
@@ -61,7 +78,8 @@ struct system*  term_new_system(const int argc, const char *argv[]) {
 
       sys->height    = 0;
       sys->width     = 0;
-      sys->rotate    = 0;
+      sys->stats     = 1;
+      sys->keys      = 0;
       sys->delta     = 0.0;
       sys->last_time = 0;
       sys->state     = T_RUN; // To enable the main loop
@@ -82,6 +100,26 @@ void term_free_system(struct system *sys) {
     // Free the system struct
     free(sys);
   }
+}
+
+
+int term_handle_args(const int argc, const char *argv[]) {
+  if(argc == 2) {
+    char opt1[] = "-v";
+    char opt2[] = "-V";
+
+    if(strncmp(opt1, argv[1], 3) == 0) {
+      printf("%s [%s] by %s.\n", APP_NAME, APP_VERS, APP_AUTH);
+      return 0;
+    }
+
+    if(strncmp(opt2, argv[1], 3) == 0) {
+      printf("%s [%s] by %s.\n", APP_NAME, APP_VERS, APP_AUTH);
+      return 0;
+    }
+  }
+
+  return 1;
 }
 
 
@@ -108,7 +146,7 @@ int term_init_curses() {
     init_pair(5, COLOR_BLACK, COLOR_GREEN);
     init_pair(6, COLOR_BLACK, COLOR_YELLOW);
     init_pair(7, COLOR_BLACK, COLOR_CYAN);
-    init_pair(8, COLOR_BLACK, COLOR_MAGENTA);
+    init_pair(8, COLOR_WHITE, COLOR_MAGENTA);
     refresh();
     return T_OK;
 }
@@ -142,8 +180,10 @@ void term_run(struct system *sys) {
 
       // Fix that timestep to run at a const rate
       while(elapsed >= rate) {
+
         // Handle logic
-        term_handle_logic(sys);
+        if(sys->state == T_RUN)
+          term_handle_logic(sys);
 
         // Render the screen
         term_render(sys);
@@ -233,55 +273,164 @@ void term_render(struct system *sys) {
   }
 
   // Print the stats
-  term_print_stats(sys);
+  if(sys->stats)
+    term_print_stats(sys);
 
+  // Print the overlay if required
+  if(sys->state == T_PAUSE || sys->state == T_GOVER)
+    term_print_overlay(sys);
+
+  // Print the key bindings if required
+  if(sys->keys)
+    term_print_keys(sys);
+
+  // Print the program borders
+  term_print_borders(sys);
 
   wrefresh(stdscr);
 }
 
 
 void           term_handle_logic(struct system *sys) {
-  if(sys->state == T_RUN) {
-    // Move the shape down
-    term_move_shape_down(sys->game, sys->delta);
+  // Move the shape down
+  term_move_shape_down(sys->game, sys->delta);
 
-    // Check to see if any lines are completed
-    term_check_lines(sys->game);
+  // Check to see if any lines are completed
+  term_check_lines(sys->game);
 
-    // Build the screen buffer before render call
-    term_build_screen(sys->game);
+  // Build the screen buffer before render call
+  term_build_screen(sys->game);
 
-    // Check to see if game over
-    if(sys->game->game_over)
-      sys->state = T_GOVER;
+  // Check to see if game over
+  if(sys->game->game_over)
+    sys->state = T_GOVER;
+}
+
+
+void term_print_borders(struct system *sys) {
+  wattron(stdscr, COLOR_PAIR(8));
+
+  // Print the frame
+  for(int x = 0; x < sys->width; x++) {
+    for(int y = 0; y < sys->height; y++) {
+      // Render the frame sides
+      if(x == 0 || x == sys->width - 1)
+        mvwaddch(stdscr, y, x, ' ');
+
+      // Render the frame top and bottom
+      if(y == 0 || y == sys->height - 1)
+        mvwaddch(stdscr, y, x, ' ');
+    }
   }
+
+  // Print the application title
+  mvwprintw(stdscr, 0, (sys->width / 2) - (strnlen(APP_NAME, 12) / 2), APP_NAME);
+
+  // Print the footer details
+  char *qstr[4] = { "[^X]", " Exit", "[^F]", " Key Bindings" };
+  int  offset   = strlen(qstr[0]) + strlen(qstr[3]);
+
+  mvwprintw(stdscr, sys->height - 1, 1 +strlen(qstr[0]), qstr[1]);
+  mvwprintw(stdscr, sys->height - 1, offset + 1 + strlen(qstr[2]), qstr[3]);
+  wattroff(stdscr, COLOR_PAIR(8));
+
+  wattron(stdscr, COLOR_PAIR(1));
+  mvwprintw(stdscr, sys->height - 1, 1, qstr[0]);
+  mvwprintw(stdscr, sys->height - 1, offset + 1, qstr[2]);
+  mvwprintw(stdscr, sys->height - 1, sys->width - strlen(APP_VERS) - 1, APP_VERS);
+  wattroff(stdscr, COLOR_PAIR(1));
 }
 
 
 void term_print_stats(struct system *sys) {
-  if(sys) {
-    char score[] = "SCORE: ";
-    char level[] = "LEVEL: ";
+  char score[] = "SCORE: ";
+  char level[] = "LEVEL: ";
 
-    int slen = snprintf(NULL, 0, "%d", sys->game->score);
-    int llen = snprintf(NULL, 0, "%d", sys->game->level);
+  int slen = snprintf(NULL, 0, "%d", sys->game->score);
+  int llen = snprintf(NULL, 0, "%d", sys->game->level);
 
-    char sval[slen];
-    char lval[llen];
+  char sval[slen];
+  char lval[llen];
 
-    snprintf(sval, slen + 1, "%d", sys->game->score);
-    snprintf(lval, llen + 1, "%d", sys->game->level);
+  snprintf(sval, slen + 1, "%d", sys->game->score);
+  snprintf(lval, llen + 1, "%d", sys->game->level);
 
-    int startx = buffer_w / 4;
-    int starty = buffer_h / 2;
+  int startx = (sys->width / 5) * 3;
+  int starty = (sys->height / 5) * 2;
+
+  wattron(stdscr, COLOR_PAIR(1));
+  mvwprintw(stdscr, starty, startx, "%s", score);
+  mvwprintw(stdscr, starty + 1, startx, "%s", level);
+  mvwprintw(stdscr, starty, startx + strlen(score), sval);
+  mvwprintw(stdscr, starty + 1, startx + strlen(level), lval);
+  wattroff(stdscr, COLOR_PAIR(1));
+}
+
+
+void term_print_overlay(struct system *sys) {
+  if(sys->state == T_PAUSE) {
+    char mesg[] = "--- GAME PAUSED ---";
+    int x = (sys->width / 2) - (strlen(mesg) / 2);
+    int y = (sys->height / 2);
 
     wattron(stdscr, COLOR_PAIR(1));
-    mvwprintw(stdscr, starty, startx, "%s", score);
-    mvwprintw(stdscr, starty + 1, startx, "%s", level);
-    mvwprintw(stdscr, starty, startx + strlen(score), sval);
-    mvwprintw(stdscr, starty + 1, startx + strlen(level), lval);
+    mvwprintw(stdscr, y, x, "%s", mesg);
     wattroff(stdscr, COLOR_PAIR(1));
   }
+
+  if(sys->state == T_GOVER) {
+    char mesg1[] = "--- GAME OVER ---";
+    char mesg2[] = "[TAB TO RESTART]";
+    int x1 = (sys->width / 2) - (strlen(mesg1) / 2);
+    int x2 = (sys->width / 2) - (strlen(mesg2) / 2);
+    int y  = (sys->height / 2);
+
+    wattron(stdscr, COLOR_PAIR(1));
+    mvwprintw(stdscr, y, x1, "%s", mesg1);
+    mvwprintw(stdscr, y + 2, x2, "%s", mesg2);
+    wattroff(stdscr, COLOR_PAIR(1));
+  }
+}
+
+
+void term_print_keys(struct system *sys) {
+  // Declare some helper vars
+  int width  = strlen(bindings[1]) + 4; // widest string
+  int height = 14;
+  int startx = (sys->width / 2) - (width / 2);
+  int starty = (sys->height / 2) - (height / 2);
+
+  // First pass paint black
+  wattron(stdscr, COLOR_PAIR(1));
+  for(int x = startx; x < startx + width; x++) {
+    for(int y = starty; y <starty + height; y++) {
+      // Render the frame
+
+      mvwaddch(stdscr, y, x, ' ');
+    }
+  }
+  wattroff(stdscr, COLOR_PAIR(1));
+
+  // Second pass paint the frame
+  wattron(stdscr, COLOR_PAIR(8));
+  for(int x = startx; x < startx + width; x++) {
+    for(int y = starty; y <starty + height; y++) {
+      if(x == startx || x == startx + width - 1)
+        mvwaddch(stdscr, y, x, ' ');
+
+      if(y == starty || y == starty + height - 1)
+        mvwaddch(stdscr, y, x, ' ');
+    }
+  }
+  wattroff(stdscr, COLOR_PAIR(8));
+
+  wattron(stdscr, COLOR_PAIR(1));
+  for(int i = 1; i < 9; i++)
+    mvwprintw(stdscr, starty+ 3 + i, startx + 2, "%s", bindings[i]);
+
+  int tpos = (startx + width / 2) - (strlen(bindings[0]) / 2);
+  mvwprintw(stdscr, starty+ 2, tpos, "%s", bindings[0]);
+  wattroff(stdscr, COLOR_PAIR(1));
 }
 
 
@@ -300,6 +449,9 @@ void term_handle_key(struct system *sys, int opt) {
         break;
       case T_GOVER:
         term_handle_key_over(sys, opt);
+        break;
+      case T_PAUSE:
+        term_handle_key_pause(sys, opt);
         break;
       default:
         break;
@@ -345,6 +497,35 @@ void term_handle_key_run(struct system *sys, int opt) {
           sys->game->rotate = 3;
         }
         break;
+    case 'p':
+      if(sys->state == T_RUN)
+        sys->state = T_PAUSE;
+      break;
+    case '\t':
+      sys->stats = !sys->stats;
+      break;
+    case CTRL_KEY('f'):
+      sys->keys = !sys->keys;
+      break;
+    default:
+      break;
+    };
+  }
+}
+
+
+void term_handle_key_pause(struct system *sys, int opt) {
+  if(opt) {
+    switch(opt) {
+    case 'p':
+      sys->state = T_RUN;
+      break;
+    case '\t':
+      sys->stats = !sys->stats;
+      break;
+    case CTRL_KEY('f'):
+      sys->keys = !sys->keys;
+      break;
     default:
       break;
     };
@@ -361,6 +542,9 @@ void term_handle_key_over(struct system *sys, int opt) {
     case '\t':
       term_reset(sys->game);
       sys->state = T_RUN;
+    case CTRL_KEY('f'):
+      sys->keys = !sys->keys;
+      break;
     default:
       break;
     };

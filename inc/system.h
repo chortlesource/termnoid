@@ -42,14 +42,15 @@ enum sysval {
 };
 
 enum state {
-  T_EXIT = 0, T_RUN = 1, T_GOVER
+  T_EXIT = 0, T_RUN = 1, T_PAUSE, T_GOVER
 };
 
 struct system {
   int state;
   int height;
   int width;
-  int rotate;
+  int stats;
+  int keys;
 
   long   last_time;
   double delta;
@@ -66,6 +67,7 @@ struct system* term_new_system(const int argc, const char *argv[]);
 void           term_free_system(struct system *sys);
 
 // System initialization functions
+int            term_handle_args(const int argc, const char *argv[]);
 int            term_init_curses();
 void           term_exit_curses();
 
@@ -73,11 +75,17 @@ void           term_exit_curses();
 void           term_run(struct system *sys);
 void           term_render(struct system *sys);
 void           term_handle_logic(struct system *sys);
+
+// System print functions
+void           term_print_borders(struct system *sys);
 void           term_print_stats(struct system *sys);
+void           term_print_overlay(struct system *sys);
+void           term_print_keys(struct system *sys);
 
 // System key functions
 void           term_handle_key(struct system *sys, int opt);
 void           term_handle_key_run(struct system *sys, int opt);
+void           term_handle_key_pause(struct system *sys, int opt);
 void           term_handle_key_over(struct system *sys, int opt);
 
 

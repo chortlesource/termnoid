@@ -29,16 +29,19 @@
 //
 
 int main(const int argc, const char *argv[]) {
-  // Initialize the system struct
-  struct system *sys = term_new_system(argc, argv);
+  // Handle args
+  if(term_handle_args(argc, argv)) {
+    // Initialize the system struct
+    struct system *sys = term_new_system(argc, argv);
 
-  if(sys) {
-    // Run the main application loop
-    term_run(sys);
+    if(sys) {
+      // Run the main application loop
+      term_run(sys);
 
-    // Free system struct
-    term_free_system(sys);
-    term_exit_curses();
+      // Free system struct
+      term_free_system(sys);
+      term_exit_curses();
+    }
   }
 
   return 0;
