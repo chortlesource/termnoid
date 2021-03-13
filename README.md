@@ -1,11 +1,8 @@
-# TERMNOID - A terminal based tetris clone in C
+# termnoid
+A tetris clone for the terminal written in `C`
 
 <p align="center">
-<<<<<<< HEAD
   <img src="gfx/termnoid.png?raw=true" alt="termnoid a tetris clone!"/>
-=======
-  <img src="gfx/sublime_text.png?raw=true" alt="termnoid a tetris clone!"/>
->>>>>>> origin/termnoid_dev
 </p>
 
 ## Description
@@ -18,6 +15,7 @@ Termnoid is not yet feature complete and lacks incremental difficulty and leveli
 
 * A posix system (depends upon `sys/time.h`)
 * libncurses >= 6.1
+* cmake >= 3.1
 
 ## Installation
 
@@ -42,7 +40,7 @@ To quit the application use `CTRL + X`
 
 ## Attribution
 
-This project was inspired by OLC and whilst the bulk of the code is my own the shape rotation algorithm is unashamedly pinched from his source. You can find OLC [here](https://github.com/OneLoneCoder).
+This project was inspired by OLC and the shape rotation algorithm used in termnoid is unashamedly pinched from his source. You can find OLC [here](https://github.com/OneLoneCoder).
 
 ## Copyright
 
