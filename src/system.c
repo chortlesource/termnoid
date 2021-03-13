@@ -56,16 +56,8 @@ struct system*  term_new_system(const int argc, const char *argv[]) {
     struct game *game = malloc(sizeof(struct game));
 
     if(game) {
-      // Initialize the game buffer
-      term_build_buffer(game);
-
+      term_reset(game);
       sys->game = game;
-      sys->game->shape  = 0;
-
-      sys->game->pos_x   = (buffer_w / 2) - 2;
-      sys->game->pos_y   = 1;
-      sys->game->rotate  = R_0;
-      sys->game->elapsed = 0;
 
       sys->height    = 0;
       sys->width     = 0;
@@ -109,6 +101,7 @@ int term_init_curses() {
     }
 
     start_color();
+    init_pair(1, COLOR_WHITE, COLOR_BLACK);
     init_pair(2, COLOR_BLACK, COLOR_WHITE);
     init_pair(3, COLOR_BLACK, COLOR_BLUE);
     init_pair(4, COLOR_BLACK, COLOR_RED);
@@ -179,7 +172,6 @@ void term_render(struct system *sys) {
     int min_x = (sys->width / 2) - (buffer_w / 2);
     int min_y = (sys->height / 2) - (buffer_h / 2);
 
-
     // Print the game buffer
     for(int x = 0; x < buffer_w; x++) {
       for(int y = 0; y < buffer_h; y++)
@@ -240,7 +232,56 @@ void term_render(struct system *sys) {
     }
   }
 
+  // Print the stats
+  term_print_stats(sys);
+
+
   wrefresh(stdscr);
+}
+
+
+void           term_handle_logic(struct system *sys) {
+  if(sys->state == T_RUN) {
+    // Move the shape down
+    term_move_shape_down(sys->game, sys->delta);
+
+    // Check to see if any lines are completed
+    term_check_lines(sys->game);
+
+    // Build the screen buffer before render call
+    term_build_screen(sys->game);
+
+    // Check to see if game over
+    if(sys->game->game_over)
+      sys->state = T_GOVER;
+  }
+}
+
+
+void term_print_stats(struct system *sys) {
+  if(sys) {
+    char score[] = "SCORE: ";
+    char level[] = "LEVEL: ";
+
+    int slen = snprintf(NULL, 0, "%d", sys->game->score);
+    int llen = snprintf(NULL, 0, "%d", sys->game->level);
+
+    char sval[slen];
+    char lval[llen];
+
+    snprintf(sval, slen + 1, "%d", sys->game->score);
+    snprintf(lval, llen + 1, "%d", sys->game->level);
+
+    int startx = buffer_w / 4;
+    int starty = buffer_h / 2;
+
+    wattron(stdscr, COLOR_PAIR(1));
+    mvwprintw(stdscr, starty, startx, "%s", score);
+    mvwprintw(stdscr, starty + 1, startx, "%s", level);
+    mvwprintw(stdscr, starty, startx + strlen(score), sval);
+    mvwprintw(stdscr, starty + 1, startx + strlen(level), lval);
+    wattroff(stdscr, COLOR_PAIR(1));
+  }
 }
 
 
@@ -252,17 +293,27 @@ void term_handle_key(struct system *sys, int opt) {
       endwin();
       refresh();
       break;
+    default:
+      switch(sys->state) {
+      case T_RUN:
+        term_handle_key_run(sys, opt);
+        break;
+      case T_GOVER:
+        term_handle_key_over(sys, opt);
+        break;
+      default:
+        break;
+      };
+    };
+  }
+}
+
+
+void term_handle_key_run(struct system *sys, int opt) {
+  if(opt) {
+    switch(opt) {
     case CTRL_KEY('x'):
       sys->state = T_EXIT;
-      break;
-    case 'f':
-      sys->game->shape += 1;
-      if(sys->game->shape >= 7)
-        sys->game->shape = 0;
-      break;
-    case 'w':
-      if(term_can_move_shape(sys->game, sys->game->pos_x, sys->game->pos_y - 1))
-        sys->game->pos_y -= 1;
       break;
     case 'a':
       if(term_can_move_shape(sys->game, sys->game->pos_x - 1, sys->game->pos_y))
@@ -301,14 +352,17 @@ void term_handle_key(struct system *sys, int opt) {
 }
 
 
-void           term_handle_logic(struct system *sys) {
-  // Move the shape down
-  term_move_shape_down(sys->game, sys->delta);
-
-  // Check to see if any lines are completed
-  term_check_lines(sys->game);
-
-  // Build the screen buffer before render call
-  term_build_screen(sys->game);
-
+void term_handle_key_over(struct system *sys, int opt) {
+  if(opt) {
+    switch(opt) {
+    case CTRL_KEY('x'):
+      sys->state = T_EXIT;
+      break;
+    case '\t':
+      term_reset(sys->game);
+      sys->state = T_RUN;
+    default:
+      break;
+    };
+  }
 }

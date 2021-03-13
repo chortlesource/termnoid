@@ -42,7 +42,7 @@ enum sysval {
 };
 
 enum state {
-  T_EXIT = 0, T_RUN = 1
+  T_EXIT = 0, T_RUN = 1, T_GOVER
 };
 
 struct system {
@@ -72,7 +72,13 @@ void           term_exit_curses();
 // System main loop
 void           term_run(struct system *sys);
 void           term_render(struct system *sys);
-void           term_handle_key(struct system *sys, int opt);
 void           term_handle_logic(struct system *sys);
+void           term_print_stats(struct system *sys);
+
+// System key functions
+void           term_handle_key(struct system *sys, int opt);
+void           term_handle_key_run(struct system *sys, int opt);
+void           term_handle_key_over(struct system *sys, int opt);
+
 
 #endif // _SYSTEM_H

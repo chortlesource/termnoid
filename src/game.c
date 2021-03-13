@@ -44,6 +44,30 @@ static const char *shapes[7] = {
 // GAME FUNCTION IMPLEMENTATION
 //
 
+void           term_reset(struct game *game) {
+  if(game) {
+    // Initialize the game buffer
+    term_build_buffer(game);
+
+    game->shape     = term_generate_random(0, 6);
+    game->pos_x     = (buffer_w / 2) - 2;
+    game->pos_y     = 1;
+    game->rotate    = R_0;
+    game->speed     = 1000;
+    game->level     = 0;
+    game->score     = 0;
+    game->game_over = 0;
+    game->elapsed   = 0;
+  }
+}
+
+
+int  term_generate_random(int l, int h) {
+  srand(time(0));
+  return (rand() % (h - l + 1)) + l;
+}
+
+
 int  term_get_rotation(int x, int y, int rotation) {
   int rvalue = 0;
 
@@ -66,6 +90,7 @@ int  term_get_rotation(int x, int y, int rotation) {
 
   return rvalue;
 }
+
 
 int  term_can_move_shape(struct game *game, int x, int y) {
   if(game) {
@@ -121,21 +146,20 @@ int   term_line_found(struct game *game) {
 
 void  term_remove_line(struct game *game, int line) {
   if(game) {
-    for(int x = 1; x < buffer_w; x++) {
-      for(int y = 1; y < line; y++) {
-        game->lvl_buff[(y+1)*buffer_w+x] = game->lvl_buff[y*buffer_w+x];
+    for(int x = buffer_w; x > 0; x--) {
+      for(int y = line; y > 1; y--) {
+        game->lvl_buff[y*buffer_w+x] = game->lvl_buff[(y-1)*buffer_w+x];
       }
     }
   }
 }
 
 
-
 void  term_move_shape_down(struct game *game, float delta) {
   if(game) {
     game->elapsed += delta;
 
-    if(game->elapsed > 1000) {
+    if(game->elapsed > game->speed) {
       if(term_can_move_shape(game, game->pos_x, game->pos_y + 1)) {
         game->pos_y += 1;
       } else {
@@ -151,11 +175,15 @@ void  term_move_shape_down(struct game *game, float delta) {
 
 void  term_respawn(struct game *game) {
   if(game) {
-    game->shape  = 0;
-    game->pos_x   = (buffer_w / 2) - 2;
-    game->pos_y   = 1;
-    game->rotate  = R_0;
-    game->elapsed = 0;
+    game->shape     = term_generate_random(0, 6);
+    game->pos_x     = (buffer_w / 2) - 2;
+    game->pos_y     = 1;
+    game->rotate    = R_0;
+    game->game_over = 0;
+    game->elapsed   = 0;
+
+    if(!term_can_move_shape(game, game->pos_x, game->pos_y + 1))
+      game->game_over = 1;
   }
 }
 
@@ -198,10 +226,35 @@ void term_build_screen(struct game *game) {
 
 void term_check_lines(struct game *game) {
   if(game) {
-
-    int line = 0;
+    int line   = 0;
+    int lcount = 0;
     while((line = term_line_found(game))) {
       term_remove_line(game, line);
+      lcount += 1;
     }
+    term_score(game, lcount);
+  }
+}
+
+
+void term_score(struct game *game, int lines) {
+  if(game) {
+    switch(lines) {
+    case 0:
+      break;
+    case 1:
+      game->score += 40 * (game->level + 1);
+      break;
+    case 2:
+      game->score += 100 * (game->level + 1);
+      break;
+    case 3:
+      game->score += 300 * (game->level + 1);
+      break;
+    case 4:
+    default:
+      game->score += 1200 * (game->level + 1);
+      break;
+    };
   }
 }
