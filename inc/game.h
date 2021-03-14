@@ -24,6 +24,7 @@
 #ifndef _GAME_H
 #define _GAME_H
 
+
 /////////////////////////////////////////////////////////////
 // GAME MACRO'S
 //
@@ -62,25 +63,21 @@ struct game {
 // GAME FUNCTION DECLARATIONS
 //
 
-// Game config functions
+// Game logic functions
+int  term_generate_random(int l, int h);
+int  term_get_rotation(int x, int y, int rotation);
+int  term_is_valid_move(struct game *game, int x, int y);
+void term_is_stuck(struct game *game);
+void term_remove_line(struct game *game, int line);
+void term_check_lines(struct game *game);
+void term_move_down(struct game *game, float delta);
+void term_score(struct game *game, int lines);
+void term_respawn(struct game *game);
 void term_reset(struct game *game);
 
-int  term_generate_random(int l, int h);
-
-// Game shape manipulation functions
-int  term_get_rotation(int x, int y, int rotation);
-int  term_can_move_shape(struct game *game, int x, int y);
-int  term_is_stuck(struct game *game);
-int  term_line_found(struct game *game);
-void term_remove_line(struct game *game, int line);
-void term_move_shape_down(struct game *game, float delta);
-void term_respawn(struct game *game);
-
 // Game buffer functions
-void term_build_buffer(struct game *game);
-void term_build_screen(struct game *game);
-void term_check_lines(struct game *game);
-void term_score(struct game *game, int lines);
+void term_gen_buffer(struct game *game);
+void term_gen_screen(struct game *game);
 
 
 #endif // _GAME_H

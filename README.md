@@ -7,9 +7,9 @@ A tetris clone for the terminal written in `C`
 
 ## Description
 
-Termnoid is a tetris clone for the terminal written in C using the ncurses library. The ambition is to keep it tiny and currently it occupies 97KB when compiled.
+Termnoid is a tetris clone for the terminal written in C using the ncurses library. The ambition is to keep it tiny and currently it occupies around 95KB when compiled.
 
-Termnoid is not yet feature complete and lacks incremental difficulty and leveling which I am yet to implement.
+As with most tetris clones Termnoid features incremental difficulty based upon score. Leveling up results in accelerating the tetrimino's descent.
 
 ## Dependencies
 
@@ -35,12 +35,13 @@ Key bindings can be accessed in game using `CTRL + F`
 * S   | Move down
 * D   | Move right
 * TAB | Toggle stats
-
-To quit the application use `CTRL + X`
+* ^F  | Show keybinding
+* ^N  | Start a new game
+* ^X  | Exit the program
 
 ## Attribution
 
-This project was inspired by OLC and the shape rotation algorithm used in termnoid is unashamedly pinched from his source. You can find OLC [here](https://github.com/OneLoneCoder).
+This project was inspired by OLC and the rotation algorithm used is unashamedly pinched from his source. You can find OLC [here](https://github.com/OneLoneCoder).
 
 ## Copyright
 

@@ -32,15 +32,17 @@ static const char *APP_NAME = "termnoid";
 static const char *APP_AUTH = "C. M. Short";
 static const char *APP_VERS = "0.0.1-beta";
 
-static const char *bindings[9] = {
+static const char *bindings[11] = {
   "-- KEY MAP --",
     "Q   | Rotate counter clockwise",
     "E   | Rotate clockwise",
     "A   | Move shape left",
     "D   | Move shape right",
     "S   | Move shape down",
+    "P   | Pause the game",
     "TAB | Toggle stats",
     "^F  | Toggle this prompt",
+    "^N  | New game",
     "^X  | Exit program"
     };
 
@@ -148,6 +150,7 @@ int term_init_curses() {
     init_pair(7, COLOR_BLACK, COLOR_CYAN);
     init_pair(8, COLOR_WHITE, COLOR_MAGENTA);
     refresh();
+
     return T_OK;
 }
 
@@ -159,7 +162,7 @@ void term_exit_curses() {
 
 void term_run(struct system *sys) {
   // Initialize ncurses
-  if(!term_init_curses())
+  if(!term_init_curses() || sys == NULL)
     return;
 
   // Find out the size of the terminal
@@ -169,31 +172,29 @@ void term_run(struct system *sys) {
   double elapsed = 0.00;
 
 
-  if(sys) {
-    while(sys->state != T_EXIT) {
+  while(sys->state != T_EXIT) {
 
-      // Handle the passage of time
-      term_calc_delta(sys);
+    // Handle the passage of time
+    term_calc_delta(sys);
 
-      if(sys->delta > 0.80) sys->delta = 0.80;
-      elapsed += sys->delta;
+    if(sys->delta > 0.80) sys->delta = 0.80;
+    elapsed += sys->delta;
 
-      // Fix that timestep to run at a const rate
-      while(elapsed >= rate) {
+    // Fix that timestep to run at a const rate
+    while(elapsed >= rate) {
 
-        // Handle logic
-        if(sys->state == T_RUN)
-          term_handle_logic(sys);
+      // Handle logic
+      if(sys->state == T_RUN)
+        term_handle_logic(sys);
 
-        // Render the screen
-        term_render(sys);
+      // Render the screen
+      term_render(sys);
 
-        // Handle user input
-        int opt  = wgetch(stdscr);
-        term_handle_key(sys, opt);
+      // Handle user input
+      int opt  = wgetch(stdscr);
+      term_handle_key(sys, opt);
 
-        elapsed -= rate;
-      }
+      elapsed -= rate;
     }
   }
 
@@ -202,74 +203,72 @@ void term_run(struct system *sys) {
 
 
 void term_render(struct system *sys) {
-  if(sys) {
-    // Ensure the window is the correct size
-    getmaxyx(stdscr, sys->height, sys->width);
-    wresize(stdscr, sys->height, sys->width);
-    werase(stdscr);
+  // Ensure the window is the correct size
+  getmaxyx(stdscr, sys->height, sys->width);
+  wresize(stdscr, sys->height, sys->width);
+  werase(stdscr);
 
-    // Calculate the dimensions of the game buffer
-    int min_x = (sys->width / 2) - (buffer_w / 2);
-    int min_y = (sys->height / 2) - (buffer_h / 2);
+  // Calculate the dimensions of the game buffer
+  int min_x = (sys->width / 2) - (buffer_w / 2);
+  int min_y = (sys->height / 2) - (buffer_h / 2);
 
-    // Print the game buffer
-    for(int x = 0; x < buffer_w; x++) {
-      for(int y = 0; y < buffer_h; y++)
-        switch(sys->game->scr_buff[y * buffer_w + x]) {
-        case '0':
-          wattron(stdscr, COLOR_PAIR(2));
-          mvwaddch(stdscr, min_y + y, min_x + x, ' ');
-          wattroff(stdscr, COLOR_PAIR(2));
-          break;
-        case '1':
-          wattron(stdscr, COLOR_PAIR(3));
-          mvwaddch(stdscr, min_y + y, min_x + x, ' ');
-          wattroff(stdscr, COLOR_PAIR(3));
-          break;
-        case '2':
-          wattron(stdscr, COLOR_PAIR(4));
-          mvwaddch(stdscr, min_y + y, min_x + x, ' ');
-          wattroff(stdscr, COLOR_PAIR(4));
-          break;
-        case '3':
-          wattron(stdscr, COLOR_PAIR(5));
-          mvwaddch(stdscr, min_y + y, min_x + x, ' ');
-          wattroff(stdscr, COLOR_PAIR(5));
-          break;
-        case '4':
-          wattron(stdscr, COLOR_PAIR(6));
-          mvwaddch(stdscr, min_y + y, min_x + x, ' ');
-          wattroff(stdscr, COLOR_PAIR(6));
-          break;
-        case '5':
-          wattron(stdscr, COLOR_PAIR(3));
-          mvwaddch(stdscr, min_y + y, min_x + x, ' ');
-          wattroff(stdscr, COLOR_PAIR(3));
-          break;
-        case '6':
-          wattron(stdscr, COLOR_PAIR(4));
-          mvwaddch(stdscr, min_y + y, min_x + x, ' ');
-          wattroff(stdscr, COLOR_PAIR(4));
-          break;
-        case '7':
-          wattron(stdscr, COLOR_PAIR(5));
-          mvwaddch(stdscr, min_y + y, min_x + x, ' ');
-          wattroff(stdscr, COLOR_PAIR(5));
-          break;
-        case '#':
-          wattron(stdscr, COLOR_PAIR(8));
-          mvwaddch(stdscr, min_y + y, min_x + x, ' ');
-          wattroff(stdscr, COLOR_PAIR(8));
-          break;
-        case 'X':
-          wattron(stdscr, COLOR_PAIR(1));
-          mvwaddch(stdscr, min_y + y, min_x + x, ' ');
-          wattroff(stdscr, COLOR_PAIR(1));
-          break;
-        default:
-          break;
-        };
-    }
+  // Print the game buffer
+  for(int x = 0; x < buffer_w; x++) {
+    for(int y = 0; y < buffer_h; y++)
+      switch(sys->game->scr_buff[y * buffer_w + x]) {
+      case '0':
+        wattron(stdscr, COLOR_PAIR(2));
+        mvwaddch(stdscr, min_y + y, min_x + x, ' ');
+        wattroff(stdscr, COLOR_PAIR(2));
+        break;
+      case '1':
+        wattron(stdscr, COLOR_PAIR(3));
+        mvwaddch(stdscr, min_y + y, min_x + x, ' ');
+        wattroff(stdscr, COLOR_PAIR(3));
+        break;
+      case '2':
+        wattron(stdscr, COLOR_PAIR(4));
+        mvwaddch(stdscr, min_y + y, min_x + x, ' ');
+        wattroff(stdscr, COLOR_PAIR(4));
+        break;
+      case '3':
+        wattron(stdscr, COLOR_PAIR(5));
+        mvwaddch(stdscr, min_y + y, min_x + x, ' ');
+        wattroff(stdscr, COLOR_PAIR(5));
+        break;
+      case '4':
+        wattron(stdscr, COLOR_PAIR(6));
+        mvwaddch(stdscr, min_y + y, min_x + x, ' ');
+        wattroff(stdscr, COLOR_PAIR(6));
+        break;
+      case '5':
+        wattron(stdscr, COLOR_PAIR(3));
+        mvwaddch(stdscr, min_y + y, min_x + x, ' ');
+        wattroff(stdscr, COLOR_PAIR(3));
+        break;
+      case '6':
+        wattron(stdscr, COLOR_PAIR(4));
+        mvwaddch(stdscr, min_y + y, min_x + x, ' ');
+        wattroff(stdscr, COLOR_PAIR(4));
+        break;
+      case '7':
+        wattron(stdscr, COLOR_PAIR(5));
+        mvwaddch(stdscr, min_y + y, min_x + x, ' ');
+        wattroff(stdscr, COLOR_PAIR(5));
+        break;
+      case '#':
+        wattron(stdscr, COLOR_PAIR(8));
+        mvwaddch(stdscr, min_y + y, min_x + x, ' ');
+        wattroff(stdscr, COLOR_PAIR(8));
+        break;
+      case 'X':
+        wattron(stdscr, COLOR_PAIR(1));
+        mvwaddch(stdscr, min_y + y, min_x + x, ' ');
+        wattroff(stdscr, COLOR_PAIR(1));
+        break;
+      default:
+        break;
+      };
   }
 
   // Print the stats
@@ -291,19 +290,21 @@ void term_render(struct system *sys) {
 }
 
 
-void           term_handle_logic(struct system *sys) {
-  // Move the shape down
-  term_move_shape_down(sys->game, sys->delta);
+void term_handle_logic(struct system *sys) {
+  if(sys->game) {
+    // Move the shape down
+    term_move_down(sys->game, sys->delta);
 
-  // Check to see if any lines are completed
-  term_check_lines(sys->game);
+    // Check to see if any lines are completed
+    term_check_lines(sys->game);
 
-  // Build the screen buffer before render call
-  term_build_screen(sys->game);
+    // Build the screen buffer before render call
+    term_gen_screen(sys->game);
 
-  // Check to see if game over
-  if(sys->game->game_over)
-    sys->state = T_GOVER;
+    // Check to see if game over
+    if(sys->game->game_over)
+      sys->state = T_GOVER;
+  }
 }
 
 
@@ -327,16 +328,18 @@ void term_print_borders(struct system *sys) {
   mvwprintw(stdscr, 0, (sys->width / 2) - (strnlen(APP_NAME, 12) / 2), APP_NAME);
 
   // Print the footer details
-  char *qstr[4] = { "[^X]", " Exit", "[^F]", " Key Bindings" };
+  char *qstr[6] = { "[^X]", " Exit", "[^F]", " Key Bindings ", "[^R]", " New Game" };
   int  offset   = strlen(qstr[0]) + strlen(qstr[3]);
 
-  mvwprintw(stdscr, sys->height - 1, 1 +strlen(qstr[0]), qstr[1]);
-  mvwprintw(stdscr, sys->height - 1, offset + 1 + strlen(qstr[2]), qstr[3]);
+  mvwprintw(stdscr, sys->height - 1, 1 + strlen(qstr[0]), qstr[1]);
+  mvwprintw(stdscr, sys->height - 1, offset + 1 + strlen(qstr[4]), qstr[5]);
+  mvwprintw(stdscr, sys->height - 1, (offset * 2) + 1 + strlen(qstr[2]), qstr[3]);
   wattroff(stdscr, COLOR_PAIR(8));
 
   wattron(stdscr, COLOR_PAIR(1));
   mvwprintw(stdscr, sys->height - 1, 1, qstr[0]);
-  mvwprintw(stdscr, sys->height - 1, offset + 1, qstr[2]);
+  mvwprintw(stdscr, sys->height - 1, offset + 1, qstr[4]);
+  mvwprintw(stdscr, sys->height - 1, (offset * 2) + 1, qstr[2]);
   mvwprintw(stdscr, sys->height - 1, sys->width - strlen(APP_VERS) - 1, APP_VERS);
   wattroff(stdscr, COLOR_PAIR(1));
 }
@@ -396,7 +399,7 @@ void term_print_overlay(struct system *sys) {
 void term_print_keys(struct system *sys) {
   // Declare some helper vars
   int width  = strlen(bindings[1]) + 4; // widest string
-  int height = 14;
+  int height = 16;
   int startx = (sys->width / 2) - (width / 2);
   int starty = (sys->height / 2) - (height / 2);
 
@@ -425,7 +428,7 @@ void term_print_keys(struct system *sys) {
   wattroff(stdscr, COLOR_PAIR(8));
 
   wattron(stdscr, COLOR_PAIR(1));
-  for(int i = 1; i < 9; i++)
+  for(int i = 1; i < 11; i++)
     mvwprintw(stdscr, starty+ 3 + i, startx + 2, "%s", bindings[i]);
 
   int tpos = (startx + width / 2) - (strlen(bindings[0]) / 2);
@@ -441,6 +444,9 @@ void term_handle_key(struct system *sys, int opt) {
       getyx(stdscr, sys->height, sys->width);
       endwin();
       refresh();
+      break;
+    case CTRL_KEY('r'):
+      term_reset(sys->game);
       break;
     default:
       switch(sys->state) {
@@ -468,21 +474,21 @@ void term_handle_key_run(struct system *sys, int opt) {
       sys->state = T_EXIT;
       break;
     case 'a':
-      if(term_can_move_shape(sys->game, sys->game->pos_x - 1, sys->game->pos_y))
+      if(term_is_valid_move(sys->game, sys->game->pos_x - 1, sys->game->pos_y))
         sys->game->pos_x -= 1;
       break;
     case 's':
-      if(term_can_move_shape(sys->game, sys->game->pos_x, sys->game->pos_y + 1))
+      if(term_is_valid_move(sys->game, sys->game->pos_x, sys->game->pos_y + 1))
         sys->game->pos_y += 1;
       break;
     case 'd':
-      if(term_can_move_shape(sys->game, sys->game->pos_x + 1, sys->game->pos_y))
+      if(term_is_valid_move(sys->game, sys->game->pos_x + 1, sys->game->pos_y))
         sys->game->pos_x += 1;
       break;
     case 'e':
       if(sys->game->rotate < 3) {
         sys->game->rotate += 1;
-        if(!term_can_move_shape(sys->game, sys->game->pos_x, sys->game->pos_y))
+        if(!term_is_valid_move(sys->game, sys->game->pos_x, sys->game->pos_y))
           sys->game->rotate -= 1;
       } else {
         sys->game->rotate = 0;
@@ -491,21 +497,21 @@ void term_handle_key_run(struct system *sys, int opt) {
       case 'q':
         if(sys->game->rotate > 0) {
           sys->game->rotate -= 1;
-          if(!term_can_move_shape(sys->game, sys->game->pos_x, sys->game->pos_y))
+          if(!term_is_valid_move(sys->game, sys->game->pos_x, sys->game->pos_y))
             sys->game->rotate += 1;
         } else {
           sys->game->rotate = 3;
         }
         break;
     case 'p':
-      if(sys->state == T_RUN)
-        sys->state = T_PAUSE;
+      sys->state = T_PAUSE;
       break;
     case '\t':
       sys->stats = !sys->stats;
       break;
     case CTRL_KEY('f'):
-      sys->keys = !sys->keys;
+      sys->keys  = !sys->keys;
+      sys->state = T_PAUSE;
       break;
     default:
       break;
@@ -524,7 +530,8 @@ void term_handle_key_pause(struct system *sys, int opt) {
       sys->stats = !sys->stats;
       break;
     case CTRL_KEY('f'):
-      sys->keys = !sys->keys;
+      sys->keys  = !sys->keys;
+      sys->state = T_RUN;
       break;
     default:
       break;
@@ -542,8 +549,9 @@ void term_handle_key_over(struct system *sys, int opt) {
     case '\t':
       term_reset(sys->game);
       sys->state = T_RUN;
+      break;
     case CTRL_KEY('f'):
-      sys->keys = !sys->keys;
+      sys->keys  = !sys->keys;
       break;
     default:
       break;
